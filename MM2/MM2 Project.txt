@@ -1,0 +1,63 @@
+import numpy as np
+import pandas as pd
+
+
+def update_cols():
+    transaction_df['transaction_date']=pd.to_datetime(transaction_df['transaction_date'])
+    transaction_df['stock_date'] = pd.to_datetime(transaction_df['stock_date'])
+    transaction_df['month_name']=transaction_df['transaction_date'].dt.month_name()
+    transaction_df['days_in_stock']=transaction_df['transaction_date']-transaction_df['stock_date']
+
+def quick_analysis(DF):
+    print(DF.info())
+    print(DF.describe())
+    print(DF.isnull().sum())
+
+
+def top_product():
+    DF=pd.merge(left=transaction_df[['product_id','quantity']],right=product_df[['product_id','product_name','product_retail_price']],left_on='product_id',right_on='product_id')
+    DF['revenue']=DF['quantity']*DF['product_retail_price']
+    GP=DF.groupby(['product_name']).sum()[['revenue']].sort_values(by=['revenue'],ascending=False).reset_index()
+    print(GP)
+
+def top_brands_profit():
+    DF = pd.merge(left=transaction_df[['product_id', 'quantity']],
+                  right=product_df[['product_id', 'product_brand', 'product_retail_price','product_cost']], left_on='product_id',
+                  right_on='product_id')
+    DF['revenue'] = DF['quantity'] * DF['product_retail_price']
+    DF['cost'] = DF['quantity'] * DF['product_cost']
+    DF['profit'] = DF['revenue']-DF['cost']
+    GP=DF.groupby(['product_brand']).sum()[['profit','revenue','cost']].sort_values(by='profit',ascending=False).reset_index()
+    print(GP)
+
+
+def quantity_by_month():
+    GP=transaction_df.groupby(['month_name']).sum()['quantity']
+    print(GP)
+
+
+def reveneu_by_month():
+    DF = pd.merge(left=transaction_df[['product_id','transaction_date', 'quantity']],
+                  right=product_df[['product_id', 'product_retail_price']], left_on='product_id',
+                  right_on='product_id')
+    DF['revenue'] = DF['quantity'] * DF['product_retail_price']
+    GP=DF.groupby(pd.Grouper(key='transaction_date',freq='M')).sum()['revenue']
+    print(GP)
+
+
+if __name__=='__main__':
+    calendar_df = pd.read_csv('MavenMarket_Calendar.csv')
+    customer_df = pd.read_csv('MavenMarket_Customers.csv')
+    product_df = pd.read_csv('MavenMarket_Products.csv')
+    region_df = pd.read_csv('MavenMarket_Regions.csv')
+    return_df = pd.read_csv('MavenMarket_Returns_1997-1998.csv')
+    sores_df = pd.read_csv('MavenMarket_Stores.csv')
+    transaction_1997_df = pd.read_csv('MavenMarket_Transactions_1997.csv')
+    transaction_1998_df = pd.read_csv('MavenMarket_Transactions_1998.csv')
+    transaction_df=pd.concat([transaction_1997_df,transaction_1998_df],ignore_index=True)
+    update_cols()
+    #top_product()
+    #top_brands_profit()
+    quantity_by_month()
+    reveneu_by_month()
+    print(transaction_df['days_in_stock'].mean().days)
